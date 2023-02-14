@@ -122,6 +122,10 @@ out <- PGOcc(occ.formula = oven.occ.formula,
              n.chains = n.chains)
 ```
 
+```{r}
+names(out)
+summary(out)
+```
 
 
 
