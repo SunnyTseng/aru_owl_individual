@@ -47,6 +47,12 @@ sites <- data_clean %>%
 data_clean_1 <- data_clean %>%
   filter(site %in% sites)
   
+###
+### Data visualization
+###
+
+
+
 
 ###
 ### Statistics
