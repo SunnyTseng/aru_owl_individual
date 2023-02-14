@@ -11,6 +11,7 @@
 ###
 library(here)
 library(tidyverse)
+library(lubridate)
 library(factoextra)
 library(ggbiplot)
 library(corrplot)
@@ -23,10 +24,24 @@ here <- here::here
 select <- dplyr::select
 filter <- dplyr::filter
 summarize <- dplyr::summarize
+group_by <- dplyr::group_by
 
 ###
 ### Data import and cleaning
 ###
+# the original output from BirdNET
+data_raw <- read_csv(here("Ch2_owl_individual", "data", "barred_owl_recordings_list.csv"))
+
+data_raw_clean <- data_raw %>%
+  filter(year == 2021) %>%
+  drop_na() %>%
+  mutate(date = ymd(paste0(year, month, day)),
+         hour = str_sub(recording, start = 10, end = 11),
+         Julian = yday(date), 
+         day_period = cut(Julian, 
+                          breaks = c(40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150)))
+
+# the song dataset after manual extraction of features
 data <- read_csv(here("Ch2_owl_individual", "data", "barred_owl_recordings_list_parameters_2.csv"))
 
 data_clean <- data %>%
@@ -36,7 +51,8 @@ data_clean <- data %>%
          month = str_sub(sound.files, start = 11, end = 12),
          day = str_sub(sound.files, start = 13, end = 14),
          unique_ID = seq(from = 1, to = nrow(.)),
-         individual = paste0(year, "_", site))
+         individual = paste0(year, "_", site),
+         date = ymd(paste0(year, month, day)))
 
 sites <- data_clean %>%
   group_by(site) %>%
@@ -51,7 +67,43 @@ data_clean_1 <- data_clean %>%
 ### Data visualization
 ###
 
+# after filtering "un-valid" recordings (recordings with fewer than 5 detections within it)
+temporal_recordings <- data_raw_clean %>%
+  group_by(date, site) %>%
+  summarize(n_recordings = n()) %>%
+  ungroup() %>%
+  #complete(date, site, fill = list(n_detections = 0)) %>%
+  ggplot(aes(x = date, y = site, fill = n_recordings)) +
+    geom_point(shape = 22, size = 5) +
+    scale_fill_gradient(low = "mistyrose", high = "red") +
+    theme_bw() +
+    theme(legend.position = c(0.99, 0.05), 
+          legend.justification = c("right", "bottom"),
+          legend.box.just = "right",
+          axis.title = element_text(size = 14)) +
+    labs(fill = "# of recordings", x = "Date", y = "Site", 
+         title = "# of BDOW recordings per site per day")
+temporal_recordings 
 
+
+# after filtering "un-qualified" sites (sites with fewer than 9 standard songs within it)\
+temporal_songs <- data_clean_1 %>%
+  group_by(date, site) %>%
+  summarize(n_songs = n()) %>%
+  ungroup() %>%
+  ggplot(aes(x = date, y = site, fill = n_songs)) +
+    geom_point(shape = 22, size = 7) +
+    scale_fill_gradient(low = "mistyrose", high = "red") +
+    theme_bw() +
+    theme(legend.position = c(0.99, 0.05), 
+          legend.justification = c("right", "bottom"),
+          legend.box.just = "right",
+          axis.title = element_text(size = 14)) +
+    labs(fill = "# of songs", x = "Date", y = "Site",
+         title = "# of BDOW songs per site per day")
+temporal_songs
+
+# spatial distribution of the 
 
 
 ###
