@@ -62,6 +62,11 @@ sites <- data_clean %>%
 
 data_clean_1 <- data_clean %>%
   filter(site %in% sites)
+
+# location of the 66 sites
+location <- read_csv(here("Ch2_owl_individual", "data", "JPRF_all_sites.csv"))
+
+
   
 ###
 ### Data visualization
