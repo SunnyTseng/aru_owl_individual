@@ -136,6 +136,8 @@ JPRF_plot <- ggplot(data = JPRF_sf) +
   theme_bw()
 
 JPRF_plot
+#--- dpi = 320 ---#
+ggsave("nc_dpi_320.png", JPRF_plot, height = 5, width = 7, dpi = 300)
 
 
 # some example code playing with leavlet
