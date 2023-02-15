@@ -125,11 +125,17 @@ JPRF_sf <- full_join(location_clean,
   replace_na(list(n_songs = 0)) %>%
   st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 
+JPRF_plot <- ggplot(data = JPRF_sf) +
+  geom_sf(aes(colour = group), shape = 3, stroke = 1.5, size = 3) +
+  geom_sf(aes(size = n_songs), shape = 1, stroke = 2, data = JPRF_sf %>% filter(n_songs != 0)) +
+  annotation_scale(location = "bl", width_hint = 0.4) +
+  annotation_north_arrow(location = "bl", which_north = "true", 
+                         pad_x = unit(0.2, "in"), pad_y = unit(0.3, "in"),
+                         style = north_arrow_fancy_orienteering) +
+  coord_sf(xlim = c(-124.7, -124.1), ylim = c(54.55, 54.85)) +
+  theme_bw()
 
-JPRF_plot <- ggplot() +
-  geom_sf(data = study_sites_sf, size = 3)
-
-
+JPRF_plot
 
 
 # some example code playing with leavlet
