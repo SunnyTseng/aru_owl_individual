@@ -117,7 +117,7 @@ temporal_songs <- data_clean_1 %>%
 temporal_songs
 
 # spatial distribution of the ARUs and the songs in each sites that is going to be analyzed
-test <- full_join(location_clean, 
+JPRF_sf <- full_join(location_clean, 
                   data_clean_1 %>% 
                     group_by(site) %>%
                     summarize(n_songs = n()),
@@ -126,52 +126,10 @@ test <- full_join(location_clean,
   st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 
 
-
-library(MODIS)
-
-# Set the path where you want to save the downloaded data
-out_dir <- here("data")
-
-# Set the desired product (in this case, MOD13Q1 for 16-day composite EVI)
-product <- "MOD13Q1"
-
-# Set the desired date range and spatial extent
-start_date <- "2020.01.01"
-end_date <- "2020.12.31"
-extent <- c(-123, 49, -120, 51) # bounding box in decimal degrees (WGS84)
-
-# Download the data
-modis_download(product = product,
-               outdir = out_dir,
-               begindate = start_date,
-               enddate = end_date,
-               extent = extent)
+JPRF_plot <- ggplot() +
+  geom_sf(data = study_sites_sf, size = 3)
 
 
-
-library(MODIS)
-library(raster)
-
-# Set the path where you want to save the downloaded data
-
-modis_download(
-  product = "MOD17A2H",
-  outdir = here("data"),
-  begindate = "2020.01.01",
-  enddate = "2020.12.31",
-  extent = c(-124.6, 54.60, -124.1, 54.85)
-    )
-
-
-product <- "MOD17A2H"
-begin <- as.Date("2020-01-01")
-end <- as.Date("2020-12-31")
-extent <- extent(c(-124.6, 54.60, -124.1, 54.85))
-tile <- getTiles(product, extent, begin, end, version = "006")
-dl_dir <- here("data")
-
-# Download the data
-runGdal(tile, product, dlDir = dl_dir, begin = begin, end = end, SDSstring = "500m_16_days_NPP", proj = "+proj=longlat +datum=WGS84")
 
 
 # some example code playing with leavlet
