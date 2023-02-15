@@ -12,6 +12,9 @@
 library(here)
 library(tidyverse)
 library(lubridate)
+library(sf)
+library(leaflet)
+
 library(factoextra)
 library(ggbiplot)
 library(corrplot)
@@ -25,12 +28,13 @@ select <- dplyr::select
 filter <- dplyr::filter
 summarize <- dplyr::summarize
 group_by <- dplyr::group_by
+rename <- dplyr::rename
 
 ###
 ### Data import and cleaning
 ###
 # the original output from BirdNET
-data_raw <- read_csv(here("Ch2_owl_individual", "data", "barred_owl_recordings_list.csv"))
+data_raw <- read_csv(here("data", "barred_owl_recordings_list.csv"))
 
 data_raw_clean <- data_raw %>%
   filter(year == 2021) %>%
@@ -42,7 +46,7 @@ data_raw_clean <- data_raw %>%
                           breaks = c(40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150)))
 
 # the song dataset after manual extraction of features
-data <- read_csv(here("Ch2_owl_individual", "data", "barred_owl_recordings_list_parameters_2.csv"))
+data <- read_csv(here("data", "barred_owl_recordings_list_parameters_2.csv"))
 
 data_clean <- data %>%
   filter_all(all_vars(. != 0)) %>%
@@ -64,8 +68,12 @@ data_clean_1 <- data_clean %>%
   filter(site %in% sites)
 
 # location of the 66 sites
-location <- read_csv(here("Ch2_owl_individual", "data", "JPRF_all_sites.csv"))
+location <- read_csv(here("data", "JPRF_all_sites.csv"))
 
+location_clean <- location %>%
+  rename("site" = Name, "longitude" = X, "latitude" = Y) %>%
+  select(site, longitude, latitude) %>%
+  mutate(group = str_extract(site, pattern = ".+(?=\\_)"))
 
   
 ###
@@ -108,7 +116,84 @@ temporal_songs <- data_clean_1 %>%
          title = "# of BDOW songs per site per day")
 temporal_songs
 
-# spatial distribution of the 
+# spatial distribution of the ARUs and the songs in each sites that is going to be analyzed
+test <- full_join(location_clean, 
+                  data_clean_1 %>% 
+                    group_by(site) %>%
+                    summarize(n_songs = n()),
+                  by = "site", replace_na) %>%
+  replace_na(list(n_songs = 0)) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+
+
+
+library(MODIS)
+
+# Set the path where you want to save the downloaded data
+out_dir <- here("data")
+
+# Set the desired product (in this case, MOD13Q1 for 16-day composite EVI)
+product <- "MOD13Q1"
+
+# Set the desired date range and spatial extent
+start_date <- "2020.01.01"
+end_date <- "2020.12.31"
+extent <- c(-123, 49, -120, 51) # bounding box in decimal degrees (WGS84)
+
+# Download the data
+modis_download(product = product,
+               outdir = out_dir,
+               begindate = start_date,
+               enddate = end_date,
+               extent = extent)
+
+
+
+library(MODIS)
+library(raster)
+
+# Set the path where you want to save the downloaded data
+
+modis_download(
+  product = "MOD17A2H",
+  outdir = here("data"),
+  begindate = "2020.01.01",
+  enddate = "2020.12.31",
+  extent = c(-124.6, 54.60, -124.1, 54.85)
+    )
+
+
+product <- "MOD17A2H"
+begin <- as.Date("2020-01-01")
+end <- as.Date("2020-12-31")
+extent <- extent(c(-124.6, 54.60, -124.1, 54.85))
+tile <- getTiles(product, extent, begin, end, version = "006")
+dl_dir <- here("data")
+
+# Download the data
+runGdal(tile, product, dlDir = dl_dir, begin = begin, end = end, SDSstring = "500m_16_days_NPP", proj = "+proj=longlat +datum=WGS84")
+
+
+# some example code playing with leavlet
+# field_sites <- test %>%
+#   rename("site_name" = site)
+# 
+# leaflet() %>%
+#   setView(lng = -123.5, lat = 52, zoom = 10) %>%
+#   addProviderTiles("Stamen") %>%
+#   addCircleMarkers(
+#     data = field_sites,
+#     radius = 5,
+#     color = "black",
+#     stroke = FALSE,
+#     fillOpacity = 0.8,
+#     popup = paste("Site name: ", field_sites$site_name)
+#   )
+
+
+
+
+
 
 
 ###
