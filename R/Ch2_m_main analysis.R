@@ -112,8 +112,8 @@ temporal_songs <- data_clean_1 %>%
           legend.justification = c("right", "bottom"),
           legend.box.just = "right",
           axis.title = element_text(size = 14)) +
-    labs(fill = "# of songs", x = "Date", y = "Site",
-         title = "# of BDOW songs per site per day")
+    labs(fill = "# of calls", x = "Date", y = "Site",
+         title = "# of BDOW calls per site per day")
 temporal_songs
 
 # spatial distribution of the ARUs and the songs in each sites that is going to be analyzed
@@ -125,8 +125,19 @@ JPRF_sf <- full_join(location_clean,
   replace_na(list(n_songs = 0)) %>%
   st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
 
-JPRF_plot <- ggplot(data = JPRF_sf) +
-  geom_sf(aes(colour = group), shape = 3, stroke = 1.5, size = 3) +
+bbox <- JPRF_sf %>% 
+  st_bbox() 
+
+bbox <- c(left = bbox[1], bottom = bbox[2], right = bbox[3], top = bbox[4])
+names(bbox) <- c("left", "bottom", "right", "top")
+
+#%>%
+#  rename(left = xmin, bottom = ymin, right = xmax, top = ymax)
+
+map <- get_map(location = bbox, maptype = "toner-background")
+
+JPRF_plot <- ggplot() +
+  geom_sf(aes(colour = group), shape = 3, stroke = 1.5, size = 3, data = JPRF_sf) +
   geom_sf(aes(size = n_songs), shape = 1, stroke = 2, data = JPRF_sf %>% filter(n_songs != 0)) +
   annotation_scale(location = "bl", width_hint = 0.4) +
   annotation_north_arrow(location = "bl", which_north = "true", 
@@ -270,8 +281,9 @@ for (i in 1:5) {
   table_i <- table(predicted, observed)
   table_all <- table_all + table_i
 }
-confusionMatrix(table_all)$overall[1]
-confusionMatrix(table_all)$overall[2]
+table_all_cm <- confusionMatrix(table_all)
+accuracy <- table_all_cm$overall[1]
+kappa <- table_all_cm$overall[2]
 
 # variable selection
 train_transformed %>%
@@ -290,7 +302,19 @@ lda_data <- cbind(train_transformed, predict(model)$x)
 ggplot(lda_data, aes(LD1, LD2)) +
   geom_point(aes(color = individual))
 
-ggord(model, data_train$site, arrow = 0)
+ggord(model, data_train$site, arrow = NULL, txt = NULL) +
+  coord_fixed(ratio = 0.7)
+
+
+df <- melt(table_all_cm$table)
+colnames(df) <- c("x", "y", "value")
+
+ggplot(df, aes(x = x, y = y, fill = value %>% log())) +
+  geom_tile(color = "white",
+            lwd = 1.5,
+            linetype = 1) +
+  coord_fixed() +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.1, hjust = 0.2))
 
 
 ###
@@ -382,20 +406,6 @@ owl_pca <- data_clean %>%
 
 pca_values <- fviz_eig(owl_pca)
 
-fviz_pca_ind(owl_pca,
-             col.ind = "cos2",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE
-             )
-
-fviz_pca_ind(owl_pca,
-             col.ind = data_clean$site, # color by groups
-             palette = c("#00AFBB",  "#FC4E07"),
-             addEllipses = TRUE, # Concentration ellipses
-             ellipse.type = "confidence",
-             legend.title = "Groups",
-             repel = TRUE
-             )
 
 fviz_pca_var(owl_pca,
              col.var = "contrib", # Color by contributions to the PC
@@ -403,9 +413,10 @@ fviz_pca_var(owl_pca,
              repel = TRUE     # Avoid text overlapping
              )
 
-pca_plot <- ggbiplot(owl_pca,
-         ellipse=TRUE, 
-         groups=data_clean$site)
+pca_plot <- ggbiplot(owl_pca, ellipse = TRUE, 
+                     groups = data_clean$site,
+                     var.axes = FALSE) +
+            theme_bw() 
 
 
 
