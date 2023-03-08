@@ -168,9 +168,25 @@ ggsave("nc_dpi_320.png", JPRF_plot, height = 5, width = 7, dpi = 300)
 #   )
 
 
+test <- lda_data %>%
+  group_by(individual) %>%
+  summarize(LD1_mean = mean(LD1),
+            LD2_mean = mean(LD2))
 
+JPRF_sf <- full_join(location_clean, 
+                     data_clean_1 %>% 
+                       group_by(site) %>%
+                       summarize(n_songs = n()),
+                     by = "site", replace_na) %>%
+  replace_na(list(n_songs = 0))
 
+JPRF_sf_m <- JPRF_sf %>%
+  select(longitude, latitude) %>%
+  as.matrix()
+rownames(JPRF_sf_m) <- JPRF_sf$site
 
+dist(JPRF_sf_m, method="euclidean", diag=TRUE, 
+     upper=FALSE)
 
 
 ###
