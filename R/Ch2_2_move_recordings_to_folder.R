@@ -8,13 +8,6 @@
 
 
 ###
-### Library
-###
-library(tidyverse)
-library(here)
-
-
-###
 ### Main function here
 ###
 move_recordings_to_folder <- function(from, to){
@@ -44,10 +37,11 @@ return(NULL)
 ###
 ### Example code
 ###
-move_recordings_to_folder(from = "F:\\Audio",
-                          to = here("Ch2_owl_individual",
-                                    "data",
-                                    "BAOW_recordings"))
+
+#move_recordings_to_folder(from = "F:\\Audio",
+#                          to = here("Ch2_owl_individual",
+#                                    "data",
+#                                    "BAOW_recordings"))
 
 
 

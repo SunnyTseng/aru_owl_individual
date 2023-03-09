@@ -46,13 +46,10 @@ return(final)
 ### Example code
 ###
 
-library(tidyverse)
-library(here)
-
-final <- qualified_recording_list(sections_min = 5) # each recording has at least 5 detections
-write_csv(final, here("Ch2_owl_individual", 
-                      "data",
-                      "barred_owl_recordings_list.csv"))
+#final <- qualified_recording_list(sections_min = 5) # each recording has at least 5 detections
+#write_csv(final, here("Ch2_owl_individual", 
+#                      "data",
+#                      "barred_owl_recordings_list.csv"))
 
 
 

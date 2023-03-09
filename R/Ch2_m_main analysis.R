@@ -117,7 +117,7 @@ temporal_songs <- data_clean_1 %>%
 temporal_songs
 
 # spatial distribution of the ARUs and the songs in each sites that is going to be analyzed
-JPRF_sf <- full_join(location_clean, 
+JPRF_sf <- full_join(data_location_clean, 
                   data_clean_1 %>% 
                     group_by(site) %>%
                     summarize(n_songs = n()),
@@ -148,45 +148,26 @@ JPRF_plot <- ggplot() +
 
 JPRF_plot
 #--- dpi = 320 ---#
-ggsave("nc_dpi_320.png", JPRF_plot, height = 5, width = 7, dpi = 300)
+# ggsave("nc_dpi_320.png", JPRF_plot, height = 5, width = 7, dpi = 300)
 
 
-# some example code playing with leavlet
-# field_sites <- test %>%
-#   rename("site_name" = site)
-# 
-# leaflet() %>%
-#   setView(lng = -123.5, lat = 52, zoom = 10) %>%
-#   addProviderTiles("Stamen") %>%
-#   addCircleMarkers(
-#     data = field_sites,
-#     radius = 5,
-#     color = "black",
-#     stroke = FALSE,
-#     fillOpacity = 0.8,
-#     popup = paste("Site name: ", field_sites$site_name)
-#   )
+#some example code playing with leavlet
+field_sites <- JPRF_sf %>%
+  rename("site_name" = site)
+
+leaflet() %>%
+  setView(lng = -123.5, lat = 52, zoom = 10) %>%
+  addProviderTiles("Stamen") %>%
+  addCircleMarkers(
+    data = field_sites,
+    radius = 5,
+    color = "black",
+    stroke = FALSE,
+    fillOpacity = 0.8,
+    popup = paste("Site name: ", field_sites$site_name)
+  )
 
 
-test <- lda_data %>%
-  group_by(individual) %>%
-  summarize(LD1_mean = mean(LD1),
-            LD2_mean = mean(LD2))
-
-JPRF_sf <- full_join(location_clean, 
-                     data_clean_1 %>% 
-                       group_by(site) %>%
-                       summarize(n_songs = n()),
-                     by = "site", replace_na) %>%
-  replace_na(list(n_songs = 0))
-
-JPRF_sf_m <- JPRF_sf %>%
-  select(longitude, latitude) %>%
-  as.matrix()
-rownames(JPRF_sf_m) <- JPRF_sf$site
-
-dist(JPRF_sf_m, method="euclidean", diag=TRUE, 
-     upper=FALSE)
 
 
 ###
@@ -272,19 +253,21 @@ for (i in 1:5) {
     filter(group == i)
   
   # data pre-processing
-  preproc.param <- data_train %>% 
-    preProcess(method = c("center", "scale"))
-  train_transformed <- preproc.param %>% predict(data_train)
-  test_transformed <- preproc.param %>% predict(data_test)
+  train_transformed <- data_train %>% 
+    preProcess(method = c("center", "scale")) %>%
+    predict(data_train)
+  test_transformed <- data_train %>% 
+    preProcess(method = c("center", "scale")) %>%
+    predict(data_test)
   
   # model fitting
   model <- train_transformed %>%
-    select(individual, sl, i2, i3, duration_8, meandom_6, meandom_1,
-           meandom_8, duration_3, duration_2) %>%
+    select(individual, sl, i2, i3, duration_8, meandom_6, meandom_1, meandom_8, duration_3, duration_2) %>%
     lda(individual ~ ., data = .)
   
   # model evaluation
-  predictions <- model %>% predict(test_transformed)
+  predictions <- model %>% 
+    predict(test_transformed)
   
   observed <- test_transformed$individual %>%
     as_factor()
@@ -292,7 +275,7 @@ for (i in 1:5) {
   
   predicted <- predictions$class %>%
     as_factor()
-  levels(predicted) <- individuals
+  levels(observed) <- individuals
   
   table_i <- table(predicted, observed)
   table_all <- table_all + table_i
@@ -331,6 +314,30 @@ ggplot(df, aes(x = x, y = y, fill = value %>% log())) +
             linetype = 1) +
   coord_fixed() +
   theme(axis.text.x = element_text(angle = 60, vjust = 0.1, hjust = 0.2))
+
+
+
+## Find the relationship between vocal similarity versus spatial distance between
+test <- lda_data %>%
+  group_by(individual) %>%
+  summarize(LD1_mean = mean(LD1),
+            LD2_mean = mean(LD2))
+
+JPRF_sf <- full_join(location_clean, 
+                     data_clean_1 %>% 
+                       group_by(site) %>%
+                       summarize(n_songs = n()),
+                     by = "site", replace_na) %>%
+  replace_na(list(n_songs = 0))
+
+JPRF_sf_m <- JPRF_sf %>%
+  select(longitude, latitude) %>%
+  as.matrix()
+rownames(JPRF_sf_m) <- JPRF_sf$site
+
+dist(JPRF_sf_m, method="euclidean", diag=TRUE, 
+     upper=FALSE)
+
 
 
 ###

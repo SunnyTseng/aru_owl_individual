@@ -8,19 +8,6 @@
 
 
 ###
-### Library
-###
-library(tidyverse)
-library(here)
-library(warbleR)
-library(tuneR)
-library(soundgen)
-
-mutate <- dplyr::mutate
-group_by <- dplyr::group_by
-here <- here::here
-
-###
 ### Main function here
 ###
 parameters_from_raventable <- function(selection_path){
