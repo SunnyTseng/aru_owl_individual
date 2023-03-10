@@ -17,6 +17,7 @@ Load necessary libraries:
 library(here)
 library(tidyverse)
 library(lubridate)
+library(reshape2)
 library(sf)
 library(leaflet)
 library(ggmap)
@@ -206,14 +207,14 @@ cor <- data_clean_1 %>%
 ```
 
 
-## Variables selection by greedy wilks: 
+## Variables selection by greedy wilks 
 
 A stepwise forward variable selection is performed. The initial model is defined by starting with the variable which separates the groups most. The model is then extended by including further variables depending on the Wilk's lambda criterion: Select the one which minimizes the Wilk's lambda of the model including the variable if its p-value still shows statistical significance. See [document](https://www.rdocumentation.org/packages/klaR/versions/1.7-0/topics/greedy.wilks) for more details:
 
 The first eight variables are: sl, i2, i3, duration_8, meandom_6, duration_3, meandom_8, duration_2
 
 ```{r}
-train_transformed <- data_clean_1 %>% 
+var_selection <- data_clean_1 %>% 
   preProcess(method = c("center", "scale")) %>%
   predict(data_clean_1) %>%
   greedy.wilks(individual ~ sl + i1 + i2 + i3 + min_d + max_d +
@@ -225,25 +226,30 @@ train_transformed <- data_clean_1 %>%
                  meandom_5 + meandom_6 + meandom_7 + meandom_8
                , data = .)
 
+head(var_selection$results, 10)
 ```
 
 
-## Analysis: linear discriminant analysis with 5 fold validation
+## Linear discriminant analysis with n fold validation and m bootstrapping with p variables
 
+Calculating the final confusion matrix and accuracy (mean & sd), kappa (mean & sd) through bootstrapping:
 ```{r}
-set.seed(110)
-
-table_all <- lda_n_fold_validation(dataset = data_clean_1, n = 5)
-
-table_all_cm <- confusionMatrix(table_all)
-accuracy <- table_all_cm$overall[1]
-kappa <- table_all_cm$overall[2]
-
-accuracy
-kappa
-
+confusion_matrix <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 4)
 ```
 
+Here is a visualization of the confusion matrix:
+```{r}
+df <- melt(confusion_matrix[[1]]$table)
+colnames(df) <- c("x", "y", "value")
+
+ggplot(df, aes(x = x, y = y, fill = value %>% log())) +
+  geom_tile(color = "white",
+            lwd = 1.5,
+            linetype = 1) +
+  coord_fixed() +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.1, hjust = 0.2))
+
+```
 
 
 

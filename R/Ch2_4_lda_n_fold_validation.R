@@ -8,13 +8,19 @@
 ###
 
 
-lda_n_fold_validation <- function(dataset, n, m){
+lda_n_fold_validation <- function(dataset, n, m, p){
+  
+  variables <- c("sl", "i2", "i3", "duration_8", "meandom_6", 
+                 "duration_3", "meandom_8", "duration_2", "meandom_5", "meandom_1") %>%
+    head(p)
   
   individuals <- dataset %>%
     pull(individual) %>%
     unique()
   
   table_final <- matrix(0, nrow = length(individuals), ncol = length(individuals))
+  accuracy_final <- c()
+  kappa_final <- c()
   for (bootstrapping in 1:m) {
     set.seed(bootstrapping)
     
@@ -39,9 +45,7 @@ lda_n_fold_validation <- function(dataset, n, m){
       
       # model fitting
       model <- train_transformed %>%
-        select(individual, 
-               sl, i2, i3, duration_8, meandom_6, 
-               duration_3, meandom_8, duration_2) %>%
+        select(all_of(c("individual", variables))) %>%
         lda(individual ~ ., data = .)
       
       # model evaluation
@@ -57,12 +61,21 @@ lda_n_fold_validation <- function(dataset, n, m){
       levels(observed) <- individuals
       
       table_i <- table(predicted, observed)
-      table_all <- table_all + table_i
+      table_all <- table_all + table_i # from single iteration
+      
+      table_all_cm <- table_all %>% 
+        confusionMatrix()
+      accuracy <- table_all_cm$overall[1]
+      kappa <- table_all_cm$overall[2]
     }
-    table_final <- table_final + table_all
-    
+    table_final <- table_final + table_all # sum across m interations
+    accuracy_final <- c(accuracy_final, accuracy)
+    kappa_final <- c(kappa_final, kappa)
   }
+
+  table_final_cm <- (table_final/m) %>%
+    confusionMatrix()
   
-return(table_final)
+return(list(table_final_cm, accuracy_final, kappa_final))
 }
 
