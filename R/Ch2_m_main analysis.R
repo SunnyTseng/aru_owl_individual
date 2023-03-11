@@ -335,8 +335,7 @@ JPRF_sf_m <- JPRF_sf %>%
   as.matrix()
 rownames(JPRF_sf_m) <- JPRF_sf$site
 
-dist(JPRF_sf_m, method="euclidean", diag=TRUE, 
-     upper=FALSE)
+dist(JPRF_sf_m, method="euclidean", diag=TRUE, upper=FALSE)
 
 
 
