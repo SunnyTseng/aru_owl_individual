@@ -22,6 +22,7 @@ library(sf)
 library(leaflet)
 library(ggmap)
 library(ggspatial)
+library(ggord)
 
 library(factoextra)
 library(ggbiplot)
