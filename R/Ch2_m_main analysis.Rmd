@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## Library
+## Library & functions
 
 Load necessary libraries: 
 ```{r, message = FALSE, warning = FALSE}
@@ -207,7 +207,7 @@ cor <- data_clean_1 %>%
 ```
 
 
-## Variables selection by greedy wilks 
+## Variables selection by greedy wilks - rank variables
 
 A stepwise forward variable selection is performed. The initial model is defined by starting with the variable which separates the groups most. The model is then extended by including further variables depending on the Wilk's lambda criterion: Select the one which minimizes the Wilk's lambda of the model including the variable if its p-value still shows statistical significance. See [document](https://www.rdocumentation.org/packages/klaR/versions/1.7-0/topics/greedy.wilks) for more details:
 
@@ -230,16 +230,97 @@ head(var_selection$results, 10)
 ```
 
 
-## Linear discriminant analysis with n fold validation and m bootstrapping with p variables
+## Linear discriminant analysis with n (=5) fold validation and m (=100) bootstrapping with p variables - determine p
 
-Calculating the final confusion matrix and accuracy (mean & sd), kappa (mean & sd) through bootstrapping:
+Calculating the final confusion matrix and accuracy (mean & sd), kappa (mean & sd) through bootstrapping. Careful that it might take about 5 minutes to run this chunk:
 ```{r}
-confusion_matrix <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 4)
+cm_p_1 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 1)
+cm_p_2 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 2)
+cm_p_3 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 3)
+cm_p_4 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 4)
+cm_p_5 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 5)
+cm_p_6 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 6)
+cm_p_7 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 7)
+cm_p_8 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 8)
+cm_p_9 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 9)
+cm_p_10 <- lda_n_fold_validation(dataset = data_clean_1, n = 5, m = 100, p = 10)
 ```
 
-Here is a visualization of the confusion matrix:
+Plot out the result to decide the best number of variables that we want to use in the final model:
 ```{r}
-df <- melt(confusion_matrix[[1]]$table)
+std <- function(x) sd(x)/sqrt(length(x))
+
+acc_kappa_p <- bind_cols(cm_p_1[[2]], cm_p_2[[2]], cm_p_3[[2]], cm_p_4[[2]], cm_p_5[[2]], 
+                         cm_p_6[[2]], cm_p_7[[2]], cm_p_8[[2]], cm_p_9[[2]], cm_p_10[[2]],
+                         cm_p_1[[3]], cm_p_2[[3]], cm_p_3[[3]], cm_p_4[[3]], cm_p_5[[3]], 
+                         cm_p_6[[3]], cm_p_7[[3]], cm_p_8[[3]], cm_p_9[[3]], cm_p_10[[3]]) %>%
+  rename(!!setNames(names(.), c(paste0("Accuracy_", seq(1:10)), paste0("Cohen's kappa_", seq(1:10))))) %>%
+  pivot_longer(everything(), names_to = "method", values_to = "value") %>%
+  separate(col = method, sep = "_", into = c("metrics", "n_variables")) %>%
+  mutate(n_variables = factor(n_variables, levels = unique(n_variables))) %>%
+  # ggplot(aes(x = n_variables, y = value)) +
+  # geom_boxplot() +
+  # geom_jitter(color = "steelblue",
+  #             size = 0.9, 
+  #             position = position_jitter(width = 0.15),
+  #             alpha = 0.3) +
+  # facet_wrap(~metrics, nrow = 1) +
+  # theme_bw()
+  group_by(metrics, n_variables) %>%
+  summarize(mean_value = mean(value),
+            std_value = std(value)) %>%
+  ungroup() %>%
+  ggplot(aes(x = n_variables, y = mean_value,
+             colour = metrics, group = metrics)) +
+    geom_line(size = 1.2) +
+    geom_point(size = 5, shape = 1) +
+    geom_errorbar(aes(ymin = mean_value - 1.96*std_value,
+                      ymax = mean_value + 1.96*std_value),
+                  width = 0.2,
+                  size = 1.2) +
+    scale_colour_viridis_d() +
+    xlab("Number of variables") +
+    ylab("Value") +
+    theme_bw() +
+    theme(axis.title = element_text(size = 16),
+          axis.text = element_text(size = 12),
+          legend.title = element_blank(),
+          legend.text = element_text(size = 14),
+          legend.position = c(0.8, 0.2))
+  
+acc_kappa_p
+```
+
+
+
+## Final model visualization & evaluation
+
+Here is the visualization of the best LDA model (select p variables):
+```{r}
+variables <- c("sl", "i2", "i3", "duration_8", "meandom_6", 
+                 "duration_3", "meandom_8", "duration_2", "meandom_5", "meandom_1")
+
+data_transformed <- data_clean_1 %>%
+  preProcess(method = c("center", "scale")) %>%
+  predict(data_clean_1) %>%
+  select(all_of(c("individual", variables[1:6]))) 
+
+model <- data_transformed %>%
+  lda(individual ~ ., data = .)
+  
+# lda_data <- cbind(data_transformed, predict(model)$x)
+# ggplot(lda_data, aes(LD1, LD2)) +
+#   geom_point(aes(color = individual))
+
+ggord(model, data_clean_1$site, arrow = NULL, txt = NULL) +
+  coord_fixed(ratio = 0.7)
+```
+
+
+
+And here is a visualization of the confusion matrix:
+```{r}
+df <- melt(cm_p_6[[1]]$table)
 colnames(df) <- c("x", "y", "value")
 
 ggplot(df, aes(x = x, y = y, fill = value %>% log())) +
@@ -250,7 +331,6 @@ ggplot(df, aes(x = x, y = y, fill = value %>% log())) +
   theme(axis.text.x = element_text(angle = 60, vjust = 0.1, hjust = 0.2))
 
 ```
-
 
 
 
