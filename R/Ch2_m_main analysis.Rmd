@@ -321,13 +321,15 @@ ggord(model, data_clean_1$site, arrow = NULL, txt = NULL) +
 
 And here is a visualization of the confusion matrix:
 ```{r}
-df <- melt(cm_p_6[[1]]$table)
-colnames(df) <- c("x", "y", "value")
+df <- melt(cm_p_6[[1]]$table) %>%
+  mutate(value = round(value))
+# colnames(df) <- c("x", "y", "value")
 
-ggplot(df, aes(x = x, y = y, fill = value %>% log())) +
-  geom_tile(color = "white",
+ggplot(df, aes(x = predicted, y = observed, fill = value  %>% log())) +
+  geom_tile(color = "gray90",
             lwd = 1.5,
             linetype = 1) +
+  scale_fill_gradient(low = "white", high = "red", na.value = "white") +
   coord_fixed() +
   theme(axis.text.x = element_text(angle = 60, vjust = 0.1, hjust = 0.2))
 
@@ -344,13 +346,23 @@ vocal_spatial <- cbind(data_transformed, predict(model)$x) %>%
   mutate(individual = str_sub(individual, start = 6)) %>%
   left_join(data_location_clean, by = c("individual" = "site"))
 
-dist(vocal_spatial, method = "euclidean", diag = TRUE, upper = FALSE)
+vocal_spatial_pair <- tibble(dist_vocal = dist(vocal_spatial %>% select(LD1_mean, LD2_mean),
+                                               method = "euclidean") %>% c(),
+                             dist_spatial = dist(vocal_spatial %>% select(longitude, latitude),
+                                                 method = "euclidean") %>% c())
+
+ggplot(aes(x = dist_spatial, y = dist_vocal), data = vocal_spatial_pair) +
+  geom_point(shape = 18, size = 4, colour = "red") +
+  geom_smooth(method = "lm", colour = "black") +
+  xlab("Distance between sites") +
+  ylab("Vocal similarity") +
+  stat_cor(method = "pearson", label.x = 0.2, label.y = 8.5, size = 5) +
+  theme_bw() +
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 12))
+
+
 ```
-
-
-
-
-
 
 
 
