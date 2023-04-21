@@ -273,21 +273,20 @@ acc_kappa_p <- bind_cols(cm_p_1[[2]], cm_p_2[[2]], cm_p_3[[2]], cm_p_4[[2]], cm_
   ungroup() %>%
   ggplot(aes(x = n_variables, y = mean_value,
              colour = metrics, group = metrics)) +
-    geom_line(size = 1.2) +
-    geom_point(size = 5, shape = 1) +
-    geom_errorbar(aes(ymin = mean_value - 1.96*std_value,
-                      ymax = mean_value + 1.96*std_value),
-                  width = 0.2,
-                  size = 1.2) +
-    scale_colour_viridis_d() +
-    xlab("Number of variables") +
-    ylab("Value") +
-    theme_bw() +
-    theme(axis.title = element_text(size = 16),
-          axis.text = element_text(size = 12),
-          legend.title = element_blank(),
-          legend.text = element_text(size = 14),
-          legend.position = c(0.8, 0.2))
+  #geom_point(size = 5, shape = 1) +
+  geom_ribbon(aes(ymin = mean_value - 1.96*std_value,
+                  ymax = mean_value + 1.96*std_value),
+              alpha = 0.3, colour = NA) +
+  geom_line(size = 1.2) +
+  scale_colour_viridis_d() +
+  xlab("Number of variables") +
+  ylab("Value") +
+  theme_bw() +
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 12),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 14),
+        legend.position = c(0.8, 0.2))
   
 acc_kappa_p
 ```
