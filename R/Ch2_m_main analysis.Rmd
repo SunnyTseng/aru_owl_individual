@@ -31,6 +31,7 @@ library(psych)
 library(caret)
 library(MASS)
 library(klaR)
+library(heplots)
 ```
 
 
@@ -123,8 +124,8 @@ temporal_songs <- data_clean_1 %>%
           legend.justification = c("right", "bottom"),
           legend.box.just = "right",
           axis.title = element_text(size = 14)) +
-    labs(fill = "# of calls", x = "Date", y = "Site",
-         title = "# of BDOW calls per site per day")
+    labs(fill = "# of calls", x = "Month", y = "Site")
+         #title = "# of BDOW calls per site per day")
 
 temporal_songs
 ```
@@ -197,6 +198,36 @@ statistics <- data_clean_1 %>%
 
 statistics
 ```
+
+Get the descriptive statistics by site
+```{r}
+stats_by_station <- data_clean_1 %>%
+  select(site, sl:meandom_8) %>%
+  pivot_longer(cols = c(-site), names_to = "variable", values_to = "value") %>%
+  group_nest(site) %>%
+  mutate(stats = map(.x = data, .f =~ .x %>%
+                       group_by(variable) %>%
+                       summarize(n = n(), 
+                                 mean = mean(value), 
+                                 sd = sd(value), 
+                                 min = min(value), 
+                                 max = max(value),
+                                 CV = sd/mean))) %>%
+  select(-data) %>%
+  unnest(cols = c(site, stats))
+
+stats_by_station
+```
+
+
+Examine the hypothesis: Box’s M-test for Homogeneity of Covariance Matrices across groups
+```{r}
+epochdat.boxm <- data_clean_1 %>%
+  select(site, sl:meandom_8) 
+
+epochdat.boxm
+```
+
 
 
 Examine the variable correlation:
