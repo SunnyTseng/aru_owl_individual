@@ -355,13 +355,30 @@ df <- melt(cm_p_6[[1]]$table) %>%
   mutate(value = round(value))
 # colnames(df) <- c("x", "y", "value")
 
-ggplot(df, aes(x = predicted, y = observed, fill = value  %>% log())) +
+ggplot(df, aes(x = observed, y = predicted, fill = value  %>% log())) +
   geom_tile(color = "gray90",
             lwd = 1.5,
             linetype = 1) +
-  scale_fill_gradient(low = "white", high = "red", na.value = "white") +
+  scale_fill_gradient(low = "white", high = "black", na.value = "white") +
   coord_fixed() +
   theme(axis.text.x = element_text(angle = 60, vjust = 0.1, hjust = 0.2))
+
+```
+
+```{r}
+model_statistics <- read_csv(here("data", "final_model_statistics.csv")) 
+
+stat_plot <- model_statistics %>%
+  pivot_longer(cols = !...1, names_to = "site", values_to = "value") %>% 
+  rename("metrics" = `...1`) %>%
+  filter(metrics %in% c("Sensitivity", "Specificity")) %>%
+  ggplot(aes(x = site, y = value, fill = metrics)) + 
+    geom_bar(stat = "identity", position = "dodge") +
+    scale_fill_manual(values = c("aquamarine4", "darkolivegreen3")) +
+    theme_bw()
+
+
+stat_plot
 
 ```
 
