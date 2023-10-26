@@ -113,6 +113,7 @@ data_location_clean <- data_location %>%
 Temporal distribution of the Barred Owl calls, after filtering out sites with fewer than 9 calls: 
 ```{r, message = FALSE}
 temporal_songs <- data_clean_1 %>%
+  mutate(site = str_sub(site, start = 4, end = 5)) %>%
   group_by(date, site) %>%
   summarize(n_songs = n()) %>%
   ungroup() %>%
@@ -123,11 +124,21 @@ temporal_songs <- data_clean_1 %>%
     theme(legend.position = c(0.99, 0.05), 
           legend.justification = c("right", "bottom"),
           legend.box.just = "right",
-          axis.title = element_text(size = 14)) +
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+          axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0))) +
     labs(fill = "# of calls", x = "Month", y = "Site")
          #title = "# of BDOW calls per site per day")
 
 temporal_songs
+
+ggsave(plot = temporal_songs, 
+       filename = here("docs", "figures", "temporal_songs.png"), 
+       height = 12, 
+       width = 20, 
+       units = "cm",
+       dpi = 300)
 ```
 
 
@@ -302,13 +313,12 @@ acc_kappa_p <- bind_cols(cm_p_1[[2]], cm_p_2[[2]], cm_p_3[[2]], cm_p_4[[2]], cm_
   summarize(mean_value = mean(value),
             std_value = std(value)) %>%
   ungroup() %>%
-  ggplot(aes(x = n_variables, y = mean_value,
-             colour = metrics, group = metrics)) +
-  #geom_point(size = 5, shape = 1) +
-  geom_ribbon(aes(ymin = mean_value - 1.96*std_value,
-                  ymax = mean_value + 1.96*std_value),
-              alpha = 0.3, colour = NA) +
-  geom_line(size = 1.2) +
+  ggplot(aes(x = n_variables, y = mean_value, group = metrics)) +
+  geom_point(size = 5, shape = 18) +
+  geom_errorbar(aes(ymin = mean_value - 1.96*std_value,
+                    ymax = mean_value + 1.96*std_value),
+                width = 0.3, size = 1.2) +
+  geom_line(size = 1.2, aes(linetype = metrics), alpha = 0.5) +
   scale_colour_viridis_d() +
   xlab("Number of variables") +
   ylab("Value") +
@@ -317,9 +327,18 @@ acc_kappa_p <- bind_cols(cm_p_1[[2]], cm_p_2[[2]], cm_p_3[[2]], cm_p_4[[2]], cm_
         axis.text = element_text(size = 12),
         legend.title = element_blank(),
         legend.text = element_text(size = 14),
-        legend.position = c(0.8, 0.2))
+        legend.position = c(0.8, 0.2), 
+        axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
+
   
 acc_kappa_p
+
+ggsave(plot = acc_kappa_p, 
+       filename = here("docs", "figures", "acc_kappa_p.png"), 
+       width = 20, height = 12, units = "cm",
+       dpi = 300)
+
 ```
 
 
@@ -330,6 +349,11 @@ Here is the visualization of the best LDA model (select p variables):
 ```{r}
 variables <- c("sl", "i2", "i3", "duration_8", "meandom_6", 
                  "duration_3", "meandom_8", "duration_2", "meandom_5", "meandom_1")
+
+cbPalette <- c("#999999", "#000000", "#E69F00", "#56B4E9", "#D34623", "#009E73", "#CC79A7", "#F0E442", "#0072B2", "#D55E00")
+sites <- data_clean_1 %>%
+  transmute(site = str_sub(site, start = 4, end = 5)) %>%
+  pull(site)
 
 data_transformed <- data_clean_1 %>%
   preProcess(method = c("center", "scale")) %>%
@@ -343,8 +367,25 @@ model <- data_transformed %>%
 # ggplot(lda_data, aes(LD1, LD2)) +
 #   geom_point(aes(color = individual))
 
-ggord(model, data_clean_1$site, arrow = NULL, txt = NULL) +
-  coord_fixed(ratio = 0.7)
+LD_plot <- ggord(model, sites, arrow = NULL, txt = NULL, size = 3) +
+  coord_fixed(ratio = 0.7) +
+  scale_fill_manual(values=cbPalette) +
+  scale_colour_manual(values=cbPalette) +
+  theme(legend.position = "right",
+        legend.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
+
+LD_plot
+
+ggsave(plot = LD_plot, 
+       filename = here("docs", "figures", "LD_plot.png"), 
+       height = 12,
+       width = 20, 
+       units = "cm", 
+       dpi = 300)
 ```
 
 
@@ -352,16 +393,32 @@ ggord(model, data_clean_1$site, arrow = NULL, txt = NULL) +
 And here is a visualization of the confusion matrix:
 ```{r}
 df <- melt(cm_p_6[[1]]$table) %>%
-  mutate(value = round(value))
-# colnames(df) <- c("x", "y", "value")
+  mutate(value = round(value),
+         predicted = str_sub(predicted, start = 9, end = 10),
+         observed = str_sub(observed, start = 9, end = 10)) 
 
-ggplot(df, aes(x = observed, y = predicted, fill = value  %>% log())) +
+confusion <- ggplot(df, aes(x = observed, y = predicted, fill = value)) +
   geom_tile(color = "gray90",
             lwd = 1.5,
             linetype = 1) +
-  scale_fill_gradient(low = "white", high = "black", na.value = "white") +
+  scale_fill_gradient2(high = "black", 
+                       low = "white",
+                       na.value = "white",
+                       trans = "log",
+                       labels = label_number(accuracy = 1)) +
+  #scale_fill_gradient(low = "white", high = "black", na.value = "white") +
   coord_fixed() +
-  theme(axis.text.x = element_text(angle = 60, vjust = 0.1, hjust = 0.2))
+  labs(x = "Observed site",
+       y = "Predicted site",
+       fill = "# of calls") +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
+
+confusion
 
 ```
 
@@ -372,14 +429,37 @@ stat_plot <- model_statistics %>%
   pivot_longer(cols = !...1, names_to = "site", values_to = "value") %>% 
   rename("metrics" = `...1`) %>%
   filter(metrics %in% c("Sensitivity", "Specificity")) %>%
+  mutate(site = str_sub(site, start = 9, end = 10)) %>%
   ggplot(aes(x = site, y = value, fill = metrics)) + 
     geom_bar(stat = "identity", position = "dodge") +
     scale_fill_manual(values = c("aquamarine4", "darkolivegreen3")) +
-    theme_bw()
+    theme_bw() +
+  labs(x = "Site",
+       y = "Value",
+       fill = "Metrics") +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
 
 
 stat_plot
 
+
+eval <- confusion + stat_plot +
+  plot_layout(widths = c(1,1)) +
+  plot_annotation(tag_levels = 'A') & 
+  theme(plot.tag = element_text(size = 20))
+
+
+ggsave(plot = eval, 
+       filename = here("docs", "figures", "eval.png"),
+       height = 12,
+       width = 30, 
+       units = "cm", 
+       dpi = 300)
 ```
 
 
@@ -393,21 +473,42 @@ vocal_spatial <- cbind(data_transformed, predict(model)$x) %>%
   mutate(individual = str_sub(individual, start = 6)) %>%
   left_join(data_location_clean, by = c("individual" = "site"))
 
-vocal_spatial_pair <- tibble(dist_vocal = dist(vocal_spatial %>% select(LD1_mean, LD2_mean),
-                                               method = "euclidean") %>% c(),
-                             dist_spatial = dist(vocal_spatial %>% select(longitude, latitude),
-                                                 method = "euclidean") %>% c())
+coordinates <- cbind(vocal_spatial$longitude, vocal_spatial$latitude)
+sites_sp <- vect(coordinates, crs = "+proj=longlat +datum=WGS84")
 
-ggplot(aes(x = dist_spatial, y = dist_vocal), data = vocal_spatial_pair) +
-  geom_point(shape = 18, size = 4, colour = "red") +
+
+dist_spatial <- vocal_spatial %>%
+  select(longitude, latitude) %>%
+  as.matrix() %>%
+  vect(crs = "+proj=longlat +datum=WGS84") %>%
+  terra::distance()
+  
+dist_vocal <- vocal_spatial %>%
+  select(LD1_mean, LD2_mean) %>%
+  dist(method = "euclidean")
+
+
+vocal_spatial_pair <- tibble(dist_vocal = dist_vocal,
+                             dist_spatial = dist_spatial * 0.001)
+
+similarity <- ggplot(aes(x = dist_spatial, y = dist_vocal), data = vocal_spatial_pair) +
+  geom_point(shape = 18, size = 4, colour = "black") +
   geom_smooth(method = "lm", colour = "black") +
-  xlab("Distance between sites") +
-  ylab("Vocal similarity") +
   stat_cor(method = "pearson", label.x = 0.2, label.y = 8.5, size = 5) +
   theme_bw() +
-  theme(axis.title = element_text(size = 16),
-        axis.text = element_text(size = 12))
+  labs(x = "Distance between sites (km)",
+       y = "Vocal similarity") +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)))
 
+ggsave(plot = similarity,
+       filename = here("docs", "figures", "similarity.png"),
+       height = 12,
+       width = 20, 
+       units = "cm", 
+       dpi = 300)
 
 ```
 
