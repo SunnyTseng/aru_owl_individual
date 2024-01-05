@@ -68,3 +68,15 @@ ggsave(filename = here("docs", "figures", "review_PCA_ind.jpg"),
        width = 15,
        units = "cm",
        dpi = 300)
+
+
+
+### LDA table
+
+model
+
+model$prior
+
+model$scaling
+
+write_csv(model$scaling %>% as_tibble(), here("docs", "tables", "LDA_table.csv"))
