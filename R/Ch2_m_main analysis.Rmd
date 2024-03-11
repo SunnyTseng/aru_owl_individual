@@ -362,6 +362,9 @@ data_transformed <- data_clean_1 %>%
 
 model <- data_transformed %>%
   lda(individual ~ ., data = .)
+
+out.mda.f1 <- predict(model)
+cor.f1 <- round(cor(data_transformed[, -1], out.mda.f1$x[, 1:6]), digits = 2)
   
 # lda_data <- cbind(data_transformed, predict(model)$x)
 # ggplot(lda_data, aes(LD1, LD2)) +
@@ -494,7 +497,8 @@ vocal_spatial_pair <- tibble(dist_vocal = dist_vocal,
 similarity <- ggplot(aes(x = dist_spatial, y = dist_vocal), data = vocal_spatial_pair) +
   geom_point(shape = 18, size = 4, colour = "black") +
   geom_smooth(method = "lm", colour = "black") +
-  stat_cor(method = "pearson", label.x = 0.2, label.y = 8.5, size = 5) +
+  stat_cor(method = "pearson", label.x = 0.2, label.y = 8.5, size = 5,
+           cor.coef.name = "rho", p.digits = 1) +
   theme_bw() +
   labs(x = "Distance between sites (km)",
        y = "Vocal similarity") +
