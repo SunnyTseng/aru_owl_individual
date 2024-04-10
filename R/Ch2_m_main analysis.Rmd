@@ -472,7 +472,11 @@ ggsave(plot = eval,
 vocal_spatial <- cbind(data_transformed, predict(model)$x) %>%
   group_by(individual) %>%
   summarize(LD1_mean = mean(LD1),
-            LD2_mean = mean(LD2)) %>%
+            LD2_mean = mean(LD2),
+            LD3_mean = mean(LD3),
+            LD4_mean = mean(LD4),
+            LD5_mean = mean(LD5),
+            LD6_mean = mean(LD6)) %>%
   mutate(individual = str_sub(individual, start = 6)) %>%
   left_join(data_location_clean, by = c("individual" = "site"))
 
@@ -487,7 +491,7 @@ dist_spatial <- vocal_spatial %>%
   terra::distance()
   
 dist_vocal <- vocal_spatial %>%
-  select(LD1_mean, LD2_mean) %>%
+  select(LD1_mean, LD2_mean, LD3_mean, LD4_mean, LD5_mean, LD6_mean) %>%
   dist(method = "euclidean")
 
 
@@ -497,8 +501,8 @@ vocal_spatial_pair <- tibble(dist_vocal = dist_vocal,
 similarity <- ggplot(aes(x = dist_spatial, y = dist_vocal), data = vocal_spatial_pair) +
   geom_point(shape = 18, size = 4, colour = "black") +
   geom_smooth(method = "lm", colour = "black") +
-  stat_cor(method = "pearson", label.x = 0.2, label.y = 8.5, size = 5,
-           cor.coef.name = "rho", p.digits = 1) +
+  stat_cor(method = "pearson", label.x = 0.2, label.y = 9.5, size = 5,
+           cor.coef.name = "rho", p.digits = 0) +
   theme_bw() +
   labs(x = "Distance between sites (km)",
        y = "Vocal similarity") +
