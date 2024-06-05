@@ -413,7 +413,7 @@ confusion <- ggplot(df, aes(x = observed, y = predicted, fill = value)) +
   coord_fixed() +
   labs(x = "Observed site",
        y = "Predicted site",
-       fill = "# of calls") +
+       fill = "No. of \ncalls") +
   theme(axis.text = element_text(size = 18),
         axis.title = element_text(size = 20),
         legend.title = element_text(size = 18),
